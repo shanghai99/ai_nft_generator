@@ -24,6 +24,9 @@ function App() {
   const [image, setImage] = useState(null)
   const [url, setURL] = useState(null)
 
+  const [message, setMessage] = useState('')
+  const [isWaiting, setIsWaiting] = useState(false)
+
   const loadBlockchainData = async () => {
     const provider = new ethers.providers.Web3Provider(window.ethereum)
     setProvider(provider)
@@ -41,6 +44,13 @@ function App() {
   const submitHandler = async (e) => {
     e.preventDefault()
 
+    if (name === '' || description === '') {
+      window.alert('Please provide a name and description')
+      return
+    }
+
+    setIsWaiting(true)
+
     // Call AI API to generate an image based on description
     const imageData = createImage()
 
@@ -50,11 +60,12 @@ function App() {
     // Mint NFT
     await mintImage(url)
 
-    console.log('success!')
+    setIsWaiting(false)
+    setMessage('')
   }
 
   const createImage = async () => {
-    console.log('Generating Image...')
+    setMessage('Generating Image...')
 
     const URL = `https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2`
 
@@ -84,7 +95,7 @@ function App() {
   }
 
   const uploadImage = async (imageData) => {
-    console.log('Uploading Image...')
+    setMessage('Uploading Image...')
 
     // Create instance of NFT.Storage
     const nftstorage = new NFTStorage({
@@ -106,7 +117,7 @@ function App() {
   }
 
   const mintImage = async (tokenURI) => {
-    console.log('Waiting for Mint...')
+    setMessage('Waiting for Mint...')
 
     const signer = await provider.getSigner()
     const transaction = await nft
@@ -141,15 +152,26 @@ function App() {
           <input type="submit" value="Create & Mint"></input>
         </form>
         <div className="image">
-          <img src={image} alt="AI Generated Result"></img>
+          {!isWaiting && image ? (
+            <img src={image} alt="AI Generated Result" />
+          ) : isWaiting ? (
+            <div className="image_placeholder">
+              <Spinner animation="border" />
+              <p>{message}</p>
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
       </div>
-      <p>
-        View&nbsp;
-        <a href={url} target="_blank" rel="noreferrer">
-          Metadata
-        </a>
-      </p>
+      {!isWaiting && url && (
+        <p>
+          View&nbsp;
+          <a href={url} target="_blank" rel="noreferrer">
+            Metadata
+          </a>
+        </p>
+      )}
     </div>
   )
 }
